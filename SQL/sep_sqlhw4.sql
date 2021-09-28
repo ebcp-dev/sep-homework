@@ -77,3 +77,114 @@ CREATE PROCEDURE sp_product_order_city_perez
 	ORDER BY ProductsOrdered DESC
 
 --7
+--8
+--9
+CREATE TABLE city_perez (
+	CityID INT PRIMARY KEY,
+	CityName VARCHAR(20)
+)
+CREATE TABLE people_perez (
+	PersonID INT PRIMARY KEY,
+	PersonName VARCHAR(20),
+	CityID INT
+		FOREIGN KEY REFERENCES city_perez(CityID) 
+		ON DELETE SET NULL
+)
+
+CREATE TRIGGER insertandupdate_on_delete
+ON city_perez
+FOR DELETE
+AS 
+	IF NOT EXISTS (
+		SELECT CityName
+		FROM city_perez
+		WHERE CityName = 'Seattle')
+			BEGIN
+			INSERT INTO city_perez VALUES (3, 'Madison')
+			UPDATE people_perez SET CityID = 3 WHERE CityID IS NULL
+			END
+
+INSERT INTO city_perez
+VALUES 
+	(1, 'Seattle'),
+	(2, 'Green Bay')
+INSERT INTO people_perez
+VALUES 
+	(1, 'Aaron Rodgers', 2),
+	(2, 'Russell Wilson', 1),
+	(3, 'Jody Nelson', 2)
+
+DELETE FROM city_perez WHERE CityID = 1
+
+CREATE VIEW Packers_perez AS
+	SELECT *
+	FROM people_perez
+	WHERE City = 2
+	
+DROP TABLE people_perez
+DROP TABLE city_perez
+DROP VIEW Packers_perez
+
+--10
+CREATE PROCEDURE sp_birthday_employees_perez AS
+	SELECT *
+	INTO birthday_employees_perez
+	FROM Employees
+	WHERE MONTH(BirthDate) = 2
+
+EXEC sp_birthday_employees_perez
+
+DROP TABLE birthday_employees_perez
+
+--11
+-- no subquery
+CREATE PROCEDURE sp_perez_1 AS
+	SELECT o.ShipCity, COUNT(DISTINCT o.CustomerID) AS NoOfCustomers
+	FROM 
+		[Order Details] od JOIN
+		Orders o ON od.OrderID = o.OrderID
+	GROUP BY o.ShipCity
+	HAVING COUNT(DISTINCT o.CustomerID) >= 2
+	INTERSECT
+	SELECT o.CustomerID, COUNT(DISTINCT od.ProductID) AS ProductTypesOrdered
+	FROM 
+		[Order Details] od JOIN
+		Orders o ON od.OrderID = o.OrderID
+	GROUP BY o.CustomerID
+	HAVING COUNT(DISTINCT od.ProductID) <= 1
+-- with subquery
+CREATE PROCEDURE sp_perez_2 AS
+	SELECT o.ShipCity, COUNT(DISTINCT o.CustomerID) AS NoOfCustomers
+	FROM 
+		[Order Details] od JOIN
+		Orders o ON od.OrderID = o.OrderID
+	GROUP BY o.ShipCity
+	HAVING o.CustomerID IN (
+		SELECT o.CustomerID
+		FROM 
+			[Order Details] od JOIN
+			Orders o ON od.OrderID = o.OrderID
+		GROUP BY o.CustomerID
+		HAVING COUNT(DISTINCT od.ProductID) <= 1	
+	)
+
+--12
+--SELECT * FROM table1
+--EXCEPT
+--SELECT * FROM table2
+-- returns 0 rows if both are identical
+
+--14
+--SELECT [First Name] + ' ' + [Last Name] + ISNULL([Middle Name], ' ') + '.' AS [Full Name]
+--FROM names
+
+--15
+--SELECT TOP 1 Marks
+--FROM students
+--WHERE Sex = 'F'
+--ORDER BY Marks DESC
+
+--16
+--SELECT Student, Marks, Sex
+--FROM students
+--ORDER BY Sex, Marks
